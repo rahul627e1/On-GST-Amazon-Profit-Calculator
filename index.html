@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<link rel="manifest" href="manifest.json">
+<title>Amazon Profit Calculator — On-GST Purchase</title>
+<style>
+:root{--bg:#f3f4f6;--card:#fff;--text:#172033;--muted:#667085;--line:#d9dee7;--accent:#111827;--good:#087443;--bad:#b42318}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}
+.wrap{max-width:900px;margin:auto;padding:20px 14px 48px}.head{margin-bottom:16px}.head h1{font-size:25px;margin:0 0 5px}.head p{margin:0;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
+h2{font-size:17px;margin:0 0 14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}input,select{width:100%;min-height:46px;padding:10px 12px;border:1px solid #cfd5df;border-radius:10px;font-size:16px;background:#fff;color:var(--text)}
+.full{grid-column:1/-1}.hint{font-size:12px;color:var(--muted);margin-top:5px}.results{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{border:1px solid var(--line);border-radius:12px;padding:12px}.metric span{display:block;color:var(--muted);font-size:12px}.metric strong{display:block;font-size:18px;margin-top:4px}.profit{background:#ecfdf3;border-color:#a6e3bf}.profit strong{color:var(--good)}.loss{background:#fff1f0;border-color:#f4b5b0}.loss strong{color:var(--bad)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}button{border:0;border-radius:10px;padding:12px 16px;font-size:15px;cursor:pointer;background:var(--accent);color:#fff}button.secondary{background:#e5e7eb;color:#111827}
+.note{font-size:12px;line-height:1.5;color:var(--muted)}.error{color:var(--bad);font-size:13px;margin-top:8px}
+@media(max-width:650px){.grid,.results{grid-template-columns:1fr}.wrap{padding:14px 10px 40px}.head h1{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+<div class="head"><h1>Amazon Profit Calculator</h1><p>On-GST purchase • India • Auto Amazon fees • Easy Ship focused</p></div>
+
+<div class="card"><h2>1. Product & Selling Price</h2><div class="grid">
+<div><label>Selling price (₹)</label><input id="sp" type="number" value="399" min="0" step="0.01"></div>
+<div><label>Customer shipping charged (₹)</label><input id="ship" type="number" value="0" min="0" step="0.01"></div>
+<div><label>Product GST rate (%)</label><input id="gst" type="number" value="18" min="0" step="0.01"></div>
+<div><label>Amazon category</label><select id="category"></select></div>
+<div class="full"><label>Referral fee override (%) — optional</label><input id="refOverride" type="number" placeholder="Leave blank to use category slab" min="0" step="0.01"></div>
+</div></div>
+
+<div class="card"><h2>2. Fulfilment & Shipping</h2><div class="grid">
+<div><label>Fulfilment channel</label><select id="fulfilment"><option>Easy Ship</option><option>Seller Flex</option><option>FC</option><option>Self Ship</option></select></div>
+<div><label>STEP level</label><select id="step"><option>Standard</option><option>Basic</option><option>Premium and Advanced</option></select></div>
+<div><label>Actual packed weight (kg)</label><input id="weight" type="number" value="1.8" min="0" step="0.001"></div>
+<div><label>Packed length (cm)</label><input id="len" type="number" value="13" min="0" step="0.1"></div>
+<div><label>Packed breadth (cm)</label><input id="breadth" type="number" value="13" min="0" step="0.1"></div>
+<div><label>Packed height (cm)</label><input id="height" type="number" value="25" min="0" step="0.1"></div>
+<div><label>FC / other shipping fee before GST (₹)</label><input id="fcFee" type="number" value="0" min="0" step="0.01"></div>
+</div><div class="hint">Volumetric weight = L × B × H ÷ 5000. Chargeable weight = higher of actual and volumetric weight. Easy Ship is auto-calculated from the workbook slabs.</div></div>
+
+<div class="card"><h2>3. Your Costs & Risk — On-GST Purchase</h2><div class="grid">
+<div><label>Product cost / CP incl. GST (₹)</label><input id="cp" type="number" value="118" min="0" step="0.01"></div>
+<div><label>Packaging cost incl. GST (₹)</label><input id="pack" type="number" value="10" min="0" step="0.01"></div>
+<div><label>Purchase GST rate (%)</label><input id="purchaseGst" type="number" value="18" min="0" step="0.01"></div>
+<div><label>Other Amazon fees before GST (₹)</label><input id="other" type="number" value="0" min="0" step="0.01"></div>
+<div><label>Amazon Ads per order (₹)</label><input id="ads" type="number" value="0" min="0" step="0.01"></div>
+<div><label>Return/RTO cost per affected order (₹)</label><input id="rto" type="number" value="0" min="0" step="0.01"></div>
+<div><label>Expected return/RTO rate (%)</label><input id="rtoRate" type="number" value="0" min="0" step="0.01"></div>
+<div><label>Expected seller-cancellation rate (%)</label><input id="cancelRate" type="number" value="0" min="0" step="0.01"></div>
+<div><label>GST-TCS rate (%)</label><input id="tcs" type="number" value="0.5" min="0" step="0.01"></div>
+</div></div>
+
+<div class="card"><h2>4. Automatic Amazon Fees & Profit</h2>
+<div class="results">
+<div class="metric"><span>Applicable referral fee</span><strong id="refPct">—</strong></div>
+<div class="metric"><span>Referral fee</span><strong id="refFee">—</strong></div>
+<div class="metric"><span>Closing fee</span><strong id="closeFee">—</strong></div>
+<div class="metric"><span>Volumetric weight</span><strong id="vol">—</strong></div>
+<div class="metric"><span>Chargeable weight</span><strong id="charge">—</strong></div>
+<div class="metric"><span>Easy Ship / weight handling</span><strong id="easy">—</strong></div>
+<div class="metric"><span>Total Amazon fees before GST</span><strong id="amazonFees">—</strong></div>
+<div class="metric"><span>GST on Amazon fees</span><strong id="feeGst">—</strong></div>
+<div class="metric"><span>Output GST in selling price</span><strong id="outGst">—</strong></div>
+<div class="metric"><span>Net sales before output GST</span><strong id="netSales">—</strong></div>
+<div class="metric"><span>GST-TCS deduction</span><strong id="tcsAmt">—</strong></div>
+<div class="metric"><span>Amazon settlement</span><strong id="settlement">—</strong></div>
+<div class="metric"><span>Product + packaging cash cost</span><strong id="cost">—</strong></div>
+<div class="metric"><span>Purchase GST ITC</span><strong id="purchaseItc">—</strong></div>
+<div class="metric"><span>Amazon fee GST ITC</span><strong id="feeItc">—</strong></div>
+<div class="metric"><span>Net GST liability after ITC & TCS</span><strong id="netGst">—</strong></div>
+<div class="metric"><span>Cash contribution before net GST</span><strong id="cash">—</strong></div>
+<div class="metric profit" id="profitBox"><span>Final profit</span><strong id="profit">—</strong></div>
+<div class="metric"><span>Profit margin</span><strong id="margin">—</strong></div>
+</div>
+<div id="error" class="error"></div>
+<div class="actions"><button id="reset" type="button" class="secondary">Reset</button><button id="share" type="button">Share Result</button></div>
+</div>
+
+<div class="card"><div class="note">
+<b>On-GST purchase:</b> product cost and packaging are entered inclusive of GST. Purchase GST is treated as eligible input tax credit when applicable. Amazon fee GST is also shown separately as potential ITC. GST-TCS is treated as a GST credit/advance, not a permanent product expense. This calculator follows the uploaded Excel workbook's fee tables and calculation structure, with purchase GST ITC explicitly surfaced for the on-GST version.
+<br><br>Amazon fees are estimates. Verify the final fee/settlement in Seller Central before listing.
+</div></div>
+</div>
+<script>
+const CATEGORIES={
+"Containers, Boxes, Bottles, and Kitchen Storage":[0,0,12],
+"Kitchen Tools & Supplies - Choppers, Knives, Bakeware & Accessories":[0,0,12.5],
+"Cookware, Tableware & Dinnerware":[0,0,12.5],
+"Kitchen - Glassware & Ceramicware":[0,0,12.5],
+"Home Decor Products":[0,0,17],
+"Home Storage":[0,0,15],
+"Home Fragrance and Candles":[0,0,12.5],
+"Home furnishing":[0,0,11],
+"Cleaning and Home Appliances":[0,0,"7.5/8.5"],
+"Small Appliances":[0,0,"4.5/8"],
+"Lawn and Garden - Plants, Seeds, Bulbs and Gardening Tools":[0,0,11],
+"Wall Art":[0,0,13.5],
+"Rugs and Doormats":[0,0,9],
+"Kitchen - Gas Stoves & Pressure Cookers":[0,0,"6/10"]
+};
+const $=id=>document.getElementById(id);
+Object.keys(CATEGORIES).forEach(x=>{const o=document.createElement('option');o.textContent=x;o.value=x;$('category').appendChild(o)});
+function n(id){let x=parseFloat($(id).value);return Number.isFinite(x)?Math.max(0,x):0}
+function money(x){return "₹"+(Math.round((x+Number.EPSILON)*100)/100).toFixed(2)}
+function referral(cat,sp,ov){
+ if($(ov).value.trim()!=="") return n(ov);
+ const r=CATEGORIES[cat]||[0,0,0];
+ if(sp<=1000) return 0;
+ if(cat==="Cleaning and Home Appliances") return sp<=5000?7.5:8.5;
+ if(cat==="Small Appliances") return sp<=5000?4.5:8;
+ if(cat==="Kitchen - Gas Stoves & Pressure Cookers") return sp<=1500?6:10;
+ return typeof r[2]==="number"?r[2]:0;
+}
+function closing(channel,total){
+ if(channel==="Easy Ship") return total<=300?2:total<=500?23:total<=1000?48:79;
+ if(channel==="Seller Flex") return total<=300?7:total<=500?13:total<=1000?38:69;
+ return 0;
+}
+function easyFee(w,step){
+ const a=step==="Premium and Advanced"?53:step==="Basic"?59:55;
+ const b=step==="Premium and Advanced"?73:step==="Basic"?79:75;
+ const c=step==="Premium and Advanced"?110:step==="Basic"?116:112;
+ if(w<=0.5)return a;
+ if(w<=1)return b;
+ if(w<=2)return c;
+ if(w<=5)return c+Math.ceil(w-2)*34;
+ return c+3*34+Math.ceil(w-5)*18;
+}
+function calc(){
+ const sp=n("sp"), ship=n("ship"), gst=n("gst"), purchaseGst=n("purchaseGst");
+ const w=n("weight"), L=n("len"), B=n("breadth"), H=n("height");
+ const vol=L*B*H/5000, charge=Math.max(w,vol,0.5);
+ const ref=referral($("category").value,sp,"refOverride");
+ const refFee=sp*ref/100;
+ const totalPrice=sp+ship;
+ const close=closing($("fulfilment").value,totalPrice);
+ const easy=$("fulfilment").value==="Easy Ship"?easyFee(charge,$("step").value):$("fulfilment").value==="Seller Flex"?easyFee(charge,$("step").value):0;
+ const shipFee=($("fulfilment").value==="FC"||$("fulfilment").value==="Self Ship")?n("fcFee"):easy;
+ const amazonFees=refFee+close+shipFee+n("other");
+ const feeGst=amazonFees*0.18;
+ const outGst=gst>0?sp*gst/(100+gst):0;
+ const netSales=sp-outGst;
+ const tcsAmt=netSales*n("tcs")/100;
+ const settlement=sp-amazonFees-feeGst-tcsAmt;
+ const cp=n("cp"), pack=n("pack"), pg=purchaseGst;
+ const purchaseItc=pg>0?cp*pg/(100+pg):0;
+ const packItc=pg>0?pack*pg/(100+pg):0;
+ const totalPurchaseItc=purchaseItc+packItc;
+ const cost=cp+pack;
+ const rto=n("rto")*n("rtoRate")/100;
+ const cancel=sp*(sp<10000?0.10:sp<=50000?0.08:sp<=100000?0.05:0.02)*n("cancelRate")/100;
+ const cash=settlement-cost-n("ads")-rto-cancel;
+ const netGst=Math.max(0,outGst-feeGst-totalPurchaseItc-tcsAmt);
+ const profit=cash-netGst;
+ $("refPct").textContent=ref.toFixed(2)+"%"; $("refFee").textContent=money(refFee);
+ $("closeFee").textContent=money(close); $("vol").textContent=vol.toFixed(3)+" kg";
+ $("charge").textContent=charge.toFixed(3)+" kg"; $("easy").textContent=money(shipFee);
+ $("amazonFees").textContent=money(amazonFees); $("feeGst").textContent=money(feeGst);
+ $("outGst").textContent=money(outGst); $("netSales").textContent=money(netSales);
+ $("tcsAmt").textContent=money(tcsAmt); $("settlement").textContent=money(settlement);
+ $("cost").textContent=money(cost); $("purchaseItc").textContent=money(totalPurchaseItc);
+ $("feeItc").textContent=money(feeGst); $("netGst").textContent=money(netGst);
+ $("cash").textContent=money(cash); $("profit").textContent=money(profit);
+ $("margin").textContent=sp?((profit/sp)*100).toFixed(2)+"%":"0.00%";
+ $("profitBox").classList.toggle("loss",profit<0); $("profitBox").classList.toggle("profit",profit>=0);
+ $("error").textContent="";
+}
+document.querySelectorAll("input,select").forEach(x=>x.addEventListener("input",calc));
+document.querySelectorAll("select").forEach(x=>x.addEventListener("change",calc));
+$("reset").onclick=()=>{location.reload()};
+$("share").onclick=async()=>{const txt=`Amazon Profit Calculator\nSelling price: ${money(n("sp"))}\nFinal profit: ${$("profit").textContent}\nMargin: ${$("margin").textContent}`;try{if(navigator.share)await navigator.share({title:"Amazon Profit Calculator",text:txt});else alert(txt)}catch(e){}};
+calc();
+</script>
+</body>
+</html>

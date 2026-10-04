@@ -1,0 +1,9 @@
+{
+  "name": "Amazon Profit Calculator \u2014 On-GST Purchase",
+  "short_name": "Amazon Profit",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#111827",
+  "description": "Amazon India profit calculator for GST-registered purchases with automatic Amazon fee calculations."
+}
